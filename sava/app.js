@@ -3,34 +3,38 @@ const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
-const unirest = require('unirest');
-const { Storage } = require('@google-cloud/storage');
+// const unirest = require('unirest');
+// const { Storage } = require('@google-cloud/storage');
 
 
 const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
 
+const db = require('./Firebase.js');
+const storage =require('./CloudStorage.js');
+ 
+
 //Initializing firestore admin
-const admin = require('firebase-admin');
+// const admin = require('firebase-admin');
 
-// Path to service account key JSON file
-const serviceAccount = require('../database/serviceAccountKey.json');
+// // Path to service account key JSON file
+// const serviceAccount = require('../database/serviceAccountKey.json');
 
-// Initializes Firebase Admin SDK with service account credentials
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
+// // Initializes Firebase Admin SDK with service account credentials
+// admin.initializeApp({
+//   credential: admin.credential.cert(serviceAccount)
+// });
 
-// Using `admin.firestore()` to interact with Firestore
-const db = admin.firestore();
+// // Using `admin.firestore()` to interact with Firestore
+// const db = admin.firestore();
 
 // CreateS a new instance of the Storage class
-const storage = new Storage({
-  projectId: 'proud-portfolio-414109',
-  keyFilename: '/KeyFile.json', // Path to service account key file
-})
+// const storage = new Storage({
+//   projectId: 'proud-portfolio-414109',
+//   keyFilename: '/KeyFile.json', // Path to service account key file
+// })
 
-const bucketName = 'bucket-shopper_s-paradise111'
+// const bucketName = 'bucket-shopper_s-paradise111'
 
 const app = express();
 
@@ -48,50 +52,58 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 
-app.get('/home', async (_, res) => {
-  try {
-    // Retrieve data from Firestore 
-    const snapshot = await db.collection('Paradise Data').get();
-    const data = snapshot.docs.map(doc => doc.data());
-    console.log(data);
-    res.json(data);
-  } catch (error) {
-    console.error('Error retrieving data from Firestore', error);
-    res.status(500).send('Error retrieving data from Firestore');
-  }
+app.use((req, res, next) => {
+  req.db = db;
+  next ();
 });
 
-app.post('/save', async (req, res) => {
-  try{
-    const  newData  = req.body; // newData is the data you want to add
+app.locals.db = db;
+app.locals.storage = storage;
 
-    // Access Firestore database
-    const db = admin.firestore();
+// app.get('/home', async (_, res) => {
+//   try {
+//     // Retrieve data from Firestore 
+//     const snapshot = await db.collection('Paradise Data').get();
+//     const data = snapshot.docs.map(doc => doc.data());
+//     console.log(data);
+//     res.json(data);
+//   } catch (error) {
+//     console.error('Error retrieving data from Firestore', error);
+//     res.status(500).send('Error retrieving data from Firestore');
+//   }
+// });
 
-    // Add new data to a collection
-    await db.collection('Paradise Data').add(newData);
+// app.post('/save', async (req, res) => {
+//   try{
+//     const  newData  = req.body; // newData is the data you want to add
+
+//     // Access Firestore database
+//     const db = admin.firestore();
+
+//     // Add new data to a collection
+//     await db.collection('Paradise Data').add(newData);
   
-    res.status(201).json({ message: 'Data added successfully' });
-  } catch (error) {
-    console.error('Error adding data:', error);
-    res.status(500).json({ error: 'An error occurred while adding data' });
-  }
-});
+//     res.status(201).json({ message: 'Data added successfully' });
+//   } catch (error) {
+//     console.error('Error adding data:', error);
+//     res.status(500).json({ error: 'An error occurred while adding data' });
+//   }
+// });
 
-// Updates data 
-app.put('/update', async (req, res) => {
-  try {
-    const { id, ...updateData } = req.body;
+// // Updates data 
+// app.put('/update', async (req, res) => {
+//   try {
+//     const { id, ...updateData } = req.body;
 
-    // Updates document in Firestore
-    await db.collection('Paradise Data').doc(id).update(updateData);
+//     // Updates document in Firestore
+//     await db.collection('Paradise Data').doc(id).update(updateData);
 
-    res.status(200).json({ message: 'Data updated successfully' });
-  } catch (error) {
-    console.error('Error updating data:', error);
-    res.status(500).json({ error: 'An error occurred while updating data' });
-  }
-});
+//     res.status(200).json({ message: 'Data updated successfully' });
+//   } catch (error) {
+//     console.error('Error updating data:', error);
+//     res.status(500).json({ error: 'An error occurred while updating data' });
+//   }
+// });
 
 // Search criteria )
 // const searchTerm = 'Headphones';
@@ -112,18 +124,18 @@ app.put('/update', async (req, res) => {
 
 // Search requests
 // Search requests
-app.get('/search', async (req, res) => {
-  try {
-    // Extract search criteria from query parameters
-    const fieldName = req.query.fieldName;
-    const searchTerm = req.query.value;
-    // console.log('Search Term:', searchTerm);
+// app.get('/search', async (req, res) => {
+//   try {
+//     // Extract search criteria from query parameters
+//     const fieldName = req.query.fieldName;
+//     const searchTerm = req.query.value;
+//     // console.log('Search Term:', searchTerm);
 
-    // Access Firestore database
-    const db = admin.firestore();
+//     // Access Firestore database
+//     const db = admin.firestore();
 
-    // Perform the query to search for the searchTerm in the database
-  const query = db.collection('Paradise Data').where(fieldName, '==', searchTerm);
+//     // Perform the query to search for the searchTerm in the database
+//   const query = db.collection('Paradise Data').where(fieldName, '==', searchTerm);
   
   // if (searchTerm) {
   //   query = query.where
@@ -134,23 +146,23 @@ app.get('/search', async (req, res) => {
       // ('Price',"==", searchTerm); 
 
     // Retrieve data based on the query
-    const snapshot = await query.get();
+    // const snapshot = await query.get();
 
     // Extract data from the snapshot
-    const searchData = [];
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      searchData.push(data);
-    });
+//     const searchData = [];
+//     snapshot.forEach(doc => {
+//       const data = doc.data();
+//       searchData.push(data);
+//     });
 
-    // Return the search results
-    res.json(searchData);
-    console.log(searchData);
-  } catch (error) {
-    console.error('Error searching for data:', error);
-    res.status(500).json({ error: 'An error occurred while searching for data' });
-  }
-});
+//     // Return the search results
+//     res.json(searchData);
+//     console.log(searchData);
+//   } catch (error) {
+//     console.error('Error searching for data:', error);
+//     res.status(500).json({ error: 'An error occurred while searching for data' });
+//   }
+// });
 
 
 // Search requests
@@ -179,20 +191,20 @@ app.get('/search', async (req, res) => {
 
 // catch 404 and forward to error handler
 
-app.delete('/delete/:documentId', (req, res) => {
-  const { documentId } = req.params; // Extracts the document ID from the request params
+// app.delete('/delete/:documentId', (req, res) => {
+//   const { documentId } = req.params; // Extracts the document ID from the request params
 
-  // Delete the document
-  db.collection('Paradise Data').doc(documentId).delete()
-    .then(() => {
-      //console.log('Document successfully deleted');
-      res.status(200).json({ message: 'Document successfully deleted' });
-    })
-    .catch((error) => {
-      console.error('Error deleting document:', error);
-      res.status(500).json({ error: 'An error occurred while deleting the document' });
-    });
-});
+//   // Delete the document
+//   db.collection('Paradise Data').doc(documentId).delete()
+//     .then(() => {
+//       //console.log('Document successfully deleted');
+//       res.status(200).json({ message: 'Document successfully deleted' });
+//     })
+//     .catch((error) => {
+//       console.error('Error deleting document:', error);
+//       res.status(500).json({ error: 'An error occurred while deleting the document' });
+//     });
+// });
 
 //const documentId = 'YOUR_DOCUMENT_ID_HERE';
 
@@ -206,18 +218,18 @@ app.delete('/delete/:documentId', (req, res) => {
 //   });
 
 
-async function uploadFile(bucketName, filePath) {
-  // Uploads a local file to the bucket
-  await storage.bucket(bucketName).upload(filePath, {
-    // Specify the destination path within the bucket
-    destination: 'destination/path/in/bucket',
-  });
+// async function uploadFile(bucketName, filePath) {
+//   // Uploads a local file to the bucket
+//   await storage.bucket(bucketName).upload(filePath, {
+//     // Specify the destination path within the bucket
+//     destination: 'destination/path/in/bucket',
+//   });
 
-  console.log(`${filePath} uploaded to ${bucketName}.`);
-}
+//   console.log(`${filePath} uploaded to ${bucketName}.`);
+// }
 
-// Example usage
-uploadFile('your-bucket-name', 'local/path/to/file.txt');
+// // Example usage
+// uploadFile('your-bucket-name', 'local/path/to/file.txt');
 
 
 app.use(function(req, res, next) {

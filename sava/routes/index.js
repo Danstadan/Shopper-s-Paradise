@@ -9,6 +9,7 @@ var router = express.Router();
 router.get('/home', async (_, res) => {
   try {
     // Retrieve data from Firestore 
+    const db = req.app.locals.db;
     const snapshot = await db.collection('Paradise Data').get();
     const data = snapshot.docs.map(doc => doc.data());
     console.log(data);
