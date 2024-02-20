@@ -46,8 +46,9 @@ function App() {
             <Sidebar />
            
              <Routes>
-                <Route index element={<Homepage />} />
-                <Route path="/InnerComponents/NewProduct" element={<Addproduct />} />
+                <Route path="/" element={<Homepage />} />
+                {/* <Route path="/category/:categoryId" element={<Category />} /> */}
+                <Route path="/Addproduct" element={<Addproduct />} />                
                 <Route path="*" element={<Errorr />} />
              </Routes>
           </div>
