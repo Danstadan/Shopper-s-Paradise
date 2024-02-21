@@ -217,24 +217,10 @@ app.locals.storage = storage;
 //     console.error('Error deleting document:', error);
 //   });
 
-
-// async function uploadFile(bucketName, filePath) {
-//   // Uploads a local file to the bucket
-//   await storage.bucket(bucketName).upload(filePath, {
-//     // Specify the destination path within the bucket
-//     destination: 'destination/path/in/bucket',
-//   });
-
-//   console.log(`${filePath} uploaded to ${bucketName}.`);
-// }
-
-// // Example usage
-// uploadFile('your-bucket-name', 'local/path/to/file.txt');
-
-
 app.use(function(req, res, next) {
   next(createError(404));
 });
+
 
 // error handler
 app.use(function(err, req, res, next) {

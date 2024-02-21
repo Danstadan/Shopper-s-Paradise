@@ -1,19 +1,26 @@
 var express = require('express');
 var router = express.Router();
 
+const { uploadFile, createNewVersion } = require('../CloudStorage.js');
+
+
 // /* GET home page. */
 // router.get('/', function(req, res, next) {
 //   res.render('index', { title: 'Express' });
 // });
 
-router.get('/home', async (_, res) => {
+router.get('/home/:entryId', async (req, res) => {
   try {
+    const { entryId } = req.params;
     // Retrieve data from Firestore 
     const db = req.app.locals.db;
-    const snapshot = await db.collection('Paradise Data').get();
-    const data = snapshot.docs.map(doc => doc.data());
-    console.log(data);
-    res.json(data);
+    const snapshot = await db.collection('Paradise Data').doc(entryId).get();
+    if (!snapshot.exists) {
+      // If the document does not exist, return a 404 Not Found response
+      return res.status(404).json({ error: 'Entry not found' });
+    }
+      const data = snapshot.data();
+      res.json(data);
   } catch (error) {
     console.error('Error retrieving data from Firestore', error);
     res.status(500).send('Error retrieving data from Firestore');
@@ -28,7 +35,11 @@ router.post('/save', async (req, res) => {
     const db = admin.firestore();
 
     // Add new data to a collection
-    await db.collection('Paradise Data').add(newData);
+    const docRef = await db.collection('Paradise Data').add(newData);
+    
+    const productId = docRef.id;
+
+    await uploadFile(bucketName, fileData, destinationPath, productId);
   
     res.status(201).json({ message: 'Data added successfully' });
   } catch (error) {
@@ -39,12 +50,14 @@ router.post('/save', async (req, res) => {
 
 
 // Updates data 
-router.put('/update', async (req, res) => {
+router.put('/update/:id', async (req, res) => {
   try {
-    const { id, ...updateData } = req.body;
+    const updateData = req.body;
 
     // Updates document in Firestore
     await db.collection('Paradise Data').doc(id).update(updateData);
+
+    //const productId = docRef.id;
 
     res.status(200).json({ message: 'Data updated successfully' });
   } catch (error) {
