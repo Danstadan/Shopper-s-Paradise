@@ -1,20 +1,54 @@
 var express = require('express');
-var router = express.Router();
 
-const { uploadFile, createNewVersion } = require('../CloudStorage.js');
+const { Storage } = require('@google-cloud/storage');
 
+const storage = new Storage({
+    projectId: 'proud-portfolio-414109',
+    keyFilename: './KeyFile.json', // Path to service account key file
+  })
 
-// /* GET home page. */
-// router.get('/', function(req, res, next) {
-//   res.render('index', { title: 'Express' });
-// });
+  var router = express.Router();
+const db = require('../Firebase.js');
 
-router.get('/home/:entryId', async (req, res) => {
+// const { uploadFile, createNewVersion } = require('../CloudStorage.js');
+
+// Fetching product data from Firebase
+router.get('/:collection/:document', async (req, res) => {
   try {
-    const { entryId } = req.params;
+    const { collection, document } = req.params;
     // Retrieve data from Firestore 
     const db = req.app.locals.db;
-    const snapshot = await db.collection('Paradise Data').doc(entryId).get();
+    const snapshot = await db.collection(collection).doc(document).get();
+    if (!snapshot.exists) {
+      // If the document does not exist, return a 404 Not Found response
+      return res.status(404).json({ error: 'Entry not found' });
+    }
+      const data = snapshot.data();
+    const { name, description } = data;
+   
+    const bucketName = 'bucket-shopper_s-paradise-111';
+    const files = await getFilesToDelete(bucketName, document);
+
+    const ResponseData = {
+      name,
+      description,
+      images: files
+    };
+
+    res.json(ResponseData);
+  } catch (error) {
+    console.error('Error retrieving data from Firestore', error);
+    res.status(500).send('Error retrieving data from Firestore');
+  }
+}); 
+
+// Fetches categories from Firebase
+router.get('/categories/home/:categoryId', async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    // Retrieve data from Firestore 
+    const db = req.app.locals.db;
+    const snapshot = await db.collection("Categories").doc(categoryId).get();
     if (!snapshot.exists) {
       // If the document does not exist, return a 404 Not Found response
       return res.status(404).json({ error: 'Entry not found' });
@@ -22,25 +56,37 @@ router.get('/home/:entryId', async (req, res) => {
       const data = snapshot.data();
       res.json(data);
   } catch (error) {
-    console.error('Error retrieving data from Firestore', error);
-    res.status(500).send('Error retrieving data from Firestore');
+    console.error('Error retrieving category from Firestore', error);
+    res.status(500).send('Error retrieving category from Firestore');
   }
 });
 
-router.post('/save', async (req, res) => {
+// Adds New Products
+router.post('/save/:collection', async (req, res) => {
   try{
-    const  newData  = req.body; // newData is the data you want to add
+    const  newData  = req.body; 
+    const {collection} = req.params;
 
     // Access Firestore database
     const db = admin.firestore();
 
     // Add new data to a collection
-    const docRef = await db.collection('Paradise Data').add(newData);
+    const docRef = await db.collection(collection).add(newData);
     
     const productId = docRef.id;
 
-    await uploadFile(bucketName, fileData, destinationPath, productId);
-  
+    const bucketName = 'bucket-shopper_s-paradise-111';
+    const files = req.files;
+
+    const uploadPromises = files.map(async (file) => {
+      const fileData = file.buffer; // File data (e.g., Buffer or string)
+      const destinationPath = `${collection}/${productId}-${file.originalname}`;
+
+    await uploadFile(bucketName, fileData, destinationPath);
+    });
+
+    await Promise.all(uploadPromises);
+
     res.status(201).json({ message: 'Data added successfully' });
   } catch (error) {
     console.error('Error adding data:', error);
@@ -48,23 +94,60 @@ router.post('/save', async (req, res) => {
   }
 });
 
+async function uploadFile(bucketName, fileData, destinationPath) {
+  try {
+    await storage.bucket(bucketName).file(destinationPath).save(fileData);
+    console.log(`File uploaded to ${bucketName}/${destinationPath}.`);
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    throw error;
+  }
+}
 
-// Updates data 
-router.put('/update/:id', async (req, res) => {
+
+// Updates Product Data
+router.put('/update/:collection/:document', async (req, res) => {
   try {
     const updateData = req.body;
+    const {collection, document} = req.params;
 
     // Updates document in Firestore
-    await db.collection('Paradise Data').doc(id).update(updateData);
+    await db.collection(collection).doc(document).update(updateData);
 
-    //const productId = docRef.id;
+    const productId = docRef.id;
 
-    res.status(200).json({ message: 'Data updated successfully' });
+    const bucketName = 'bucket-shopper_s-paradise-111';
+    const files = req.files;
+
+    const updatePromises = files.map(async (file) => {
+      const fileData = file.buffer; // File data (e.g., Buffer or string)
+      const destinationPath = `${collection}/${productId}-${file.originalname}`;
+
+    await createNewVersion(bucketName, fileData, destinationPath);
+    });
+
+    await Promise.all(updatePromises);
+
+    res.status(201).json({ message: 'Data updated successfully' });
   } catch (error) {
     console.error('Error updating data:', error);
     res.status(500).json({ error: 'An error occurred while updating data' });
   }
 });
+
+async function createNewVersion(bucketName, originalFileName, updatedFileName, updatedFileData) {
+  // Upload the updated file with the new name to the bucket
+  try {
+  await storage.bucket(bucketName).file(updatedFileName).save(updatedFileData);
+
+  console.log(`New version of ${originalFileName} created: ${updatedFileName}`);
+   await file.setMetadata({ metadata: { version: '2.0' } });
+  }
+  catch (error) {
+    console.error('Error updating images:', error);
+    res.status(500).json({ error: 'An error occurred while updating images' });
+  }
+}
 
 // Search requests
 router.get('/search', async (req, res) => {
@@ -80,14 +163,6 @@ router.get('/search', async (req, res) => {
     // Perform the query to search for the searchTerm in the database
   const query = db.collection('Paradise Data').where(fieldName, '==', searchTerm);
   
-  // if (searchTerm) {
-  //   query = query.where
-      // ('Availability',"==", searchTerm);
-      // ('Discount',"==", searchTerm);
-     // ('Item',"==", searchTerm);
-      // ('New Prce',"==", searchTerm);
-      // ('Price',"==", searchTerm); 
-
     // Retrieve data based on the query
     const snapshot = await query.get();
 
@@ -107,75 +182,86 @@ router.get('/search', async (req, res) => {
   }
 });
 
+// Deletes Product Entries
+router.delete('/delete/:collection/:document', async (req, res) => {
+  try{
+  const { collection, document } = req.params; 
+  const db = admin.firestore();
 
-// Search requests
-// router.get('/search', (req, res) => {
-//   try {
-//   // Extract search criteria from query parameters
-//   const { availability, discount, item, newPrice, price } = req.query;
+  const bucketName = 'bucket-shopper_s-paradise-111';
+  const filesToDelete = await getProductData(collection, document); // Get the list of files to delete
+  const deletePromises = filesToDelete.map(async (fileName) => {
+  await deleteFile(bucketName, fileName);
+  });
+    await Promise.all(deletePromises);
 
-//   // Filter data based on search criteria
-//   const filteredData = data.filter(item => (
-//       (!availability || item.Availability === availability) &&
-//       (!discount || item['Discount %'] === parseInt(discount)) &&
-//       (!item || item.Item.toLowerCase() === item.toLowerCase()) &&
-//       (!newPrice || item['New Price'] === parseInt(newPrice)) &&
-//       (!price || item.Price === parseInt(price))
-//   ));
-
-//   res.json(filteredData);
-//   console.log(filteredData);
-//   }
-//   catch  (error) {
-//     console.error('Error searching for data:', error);
-//     res.status(500).json({ error: 'An error occurred while searching for data' });
-//   }
-// });
-
-
-// Search criteria )
-// const searchTerm = 'Headphones';
-
-// //Query to search for documents where 'Item' field matches the search term
-// const query = db.collection('Paradise Data').where('Item', '==', searchTerm);
-
-// // Executing the query
-// // const querySnapshot = await query.get();
-
-// // Processing the results
-// const searchResults = [];
-// querySnapshot.forEach(doc => {
-//   // Extracting data from each document
-//   const data = doc.data();
-//   searchResults.push(data);
-// });
-
-// catch 404 and forward to error handler
-
-router.delete('/delete/:documentId', (req, res) => {
-  const { documentId } = req.params; // Extracts the document ID from the request params
-
-  // Delete the document
-  db.collection('Paradise Data').doc(documentId).delete()
-    .then(() => {
-      //console.log('Document successfully deleted');
-      res.status(200).json({ message: 'Document successfully deleted' });
-    })
-    .catch((error) => {
+    res.status(200).json({ message: 'Document successfully deleted' });
+    }
+    catch(error) {
       console.error('Error deleting document:', error);
       res.status(500).json({ error: 'An error occurred while deleting the document' });
-    });
+    }
 });
 
-//const documentId = 'YOUR_DOCUMENT_ID_HERE';
+async function getProductData(collection, document) {
+  try{
+  const db = req.app.locals.db;
+  const firestorePromise = db.collection(collection).doc(document).get();
+  const storagePromise = getFilesToDelete(collection, document);
 
-// Delete the document
-// db.collection('Paradise Data').doc(documentId).delete()
-//   .then(() => {
-//     console.log('Document successfully deleted');
-//   })
-//   .catch((error) => {
-//     console.error('Error deleting document:', error);
-//   });
+  const [firestoreSnapshot, images] = await Promise.all([firestorePromise, storagePromise]);
 
-module.exports = router;
+  const productDescription = firestoreSnapshot.data();
+  return {productDescription, images};
+  } 
+  catch (error){
+    console.log('Error retrieving files to delete:', error );
+    throw error;
+  }
+}
+
+async function getFilesToDelete(bucketName, productId) {
+  try {
+    const [files] = await storage.bucket(bucketName).getFiles();
+
+    // Extract relevant information from the file metadata
+    const filteredFiles = files.filter(file =>{
+      return file.name.includes(productId);
+    });
+
+    const fileDetails = filteredFiles.map(file => ({
+      name: file.name,
+      size: file.metadata.size,
+      contentType: file.metadata.contentType,
+      updated: file.metadata.updated,
+    }));
+    return fileDetails;
+
+  }
+  catch (error) {
+    console.error('Error retrieving files to delete:', error);
+    throw error;
+  }
+}
+
+// Delete a file from Cloud Storage
+async function deleteFile(bucketName, fileName, document, collection) {
+  const db = admin.firestore();
+
+  try {
+    if(productId === document) {
+    await db.collection(collection).doc(document).delete();
+    await storage.bucket(bucketName).file(fileName).delete();
+    console.log(`File ${fileName} deleted from Cloud Storage.`);
+    }
+    else {
+      console.log('No product images match documentId.');
+    }
+    } 
+    catch (error) {
+    console.error(`Error deleting file ${fileName} from Cloud Storage:`, error);
+    throw error;
+  }
+}
+
+module.exports = {router, uploadFile, createNewVersion};
