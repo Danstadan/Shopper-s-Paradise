@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 function Futaa () {
     return (
         <div>
-            <footer className="footer bg-dark text-light text-center py-3 rounded fixed-bottom">
+            <footer className="footer bg-dark text-light text-center py-3 rounded mt-1 ">
                 <div className="container">
                      <span>&copy; 2024 Shopper's Paradise</span>
                      <div className="me-1"> 

@@ -15,9 +15,8 @@ function Sidebar() {
                     <p>Stationery</p>
                 </div>
             </div>
-            <div className="col border rounded ">
-                <h3>ADS</h3>
-                <img src="#" alt="#"/>
+            <div className="col border-none ">
+                <img src="./src/assets/ad.jpg" alt="ad no.1" style={{maxWidth: "100%", maxHeight: "100%", height: "auto", borderRadius:"7px"}}/>
             </div>
 
         </div>

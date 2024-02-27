@@ -10,6 +10,7 @@ const bucketName = 'bucket-shopper_s-paradise-111';
 router.get('/product/:productId', async (req, res) => {
   try {
       const { productId } = req.params;
+      
 
       // Fetch product descriptions from Firestore
       const firestoreData = await fetchProductDescriptionsFromFirestore(productId);
@@ -124,6 +125,8 @@ async function fetchProductImagesFromStorage(productId) {
     throw error;
   }
 }
+
+
 
 
 // /* GET users listing. */

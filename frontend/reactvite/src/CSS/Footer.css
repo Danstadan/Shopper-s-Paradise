@@ -1,0 +1,8 @@
+.footer {
+    position: sticky;
+    bottom: 0;
+    background-color: #343a40; /* Adjust as needed */
+    color: #ffffff; /* Adjust as needed */
+    padding: 10px 0; /* Adjust padding as needed */
+  }
+  

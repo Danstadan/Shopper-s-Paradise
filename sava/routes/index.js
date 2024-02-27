@@ -1,4 +1,6 @@
-var express = require('express');
+const express = require('express');
+const router = express.Router();
+const db = require('../Firebase.js');
 
 const { Storage } = require('@google-cloud/storage');
 
@@ -7,12 +9,9 @@ const storage = new Storage({
     keyFilename: './KeyFile.json', // Path to service account key file
   })
 
-  var router = express.Router();
-const db = require('../Firebase.js');
-
 // const { uploadFile, createNewVersion } = require('../CloudStorage.js');
 
-// Fetching product data from Firebase
+// Fetching a specific product data from Firebase
 router.get('/:collection/:document', async (req, res) => {
   try {
     const { collection, document } = req.params;
@@ -42,7 +41,7 @@ router.get('/:collection/:document', async (req, res) => {
   }
 }); 
 
-// Fetches categories from Firebase
+// Fetches specific categories from Firebase
 router.get('/categories/home/:categoryId', async (req, res) => {
   try {
     const { categoryId } = req.params;
@@ -54,12 +53,59 @@ router.get('/categories/home/:categoryId', async (req, res) => {
       return res.status(404).json({ error: 'Entry not found' });
     }
       const data = snapshot.data();
-      res.json(data);
+      console.log(data);
+      const jsonData = JSON.stringify(data);
+      res.json(jsonData);
   } catch (error) {
     console.error('Error retrieving category from Firestore', error);
     res.status(500).send('Error retrieving category from Firestore');
   }
 });
+
+// Fetching products data from Firebase
+router.get('/:collection', async (req, res) => {
+  try {
+    const { collection } = req.params;
+    // Retrieve data from Firestore 
+    const db = req.app.locals.db;
+    const snapshot = await db.collection(collection).get();
+    if (!snapshot.exists) {
+      // If the document does not exist, return a 404 Not Found response
+      return res.status(404).json({ error: 'Entry not found' });
+    }
+      const data = snapshot.data();
+    const { name, description } = data;
+   
+    const bucketName = 'bucket-shopper_s-paradise-111';
+    const files = await getFilesToDelete(bucketName, document);
+
+    const ResponseData = {
+      name,
+      description,
+      images: files
+    };
+
+    res.json(ResponseData);
+  } catch (error) {
+    console.error('Error retrieving data from Firestore', error);
+    res.status(500).send('Error retrieving data from Firestore');
+  }
+}); 
+
+// Fetches all categories from Firebase
+router.get('/categories/home', async (req, res) => {
+  try {
+    const db = req.app.locals.db;
+    const snapshot = await db.collection("Categories").get();
+    const categories = snapshot.docs.map(doc => doc.data());
+    res.json(categories);
+  } catch (error) {
+    console.error('Error retrieving categories from Firestore', error);
+    res.status(500).send('Error retrieving categories from Firestore');
+  }
+});
+
+
 
 // Adds New Products
 router.post('/save/:collection', async (req, res) => {
@@ -263,5 +309,4 @@ async function deleteFile(bucketName, fileName, document, collection) {
     throw error;
   }
 }
-
-module.exports = {router, uploadFile, createNewVersion};
+module.exports = router;

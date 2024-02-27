@@ -2,6 +2,8 @@
   "name": "sava",
   "version": "0.0.0",
   "private": true,
+  "proxy": "http://localhost:8080",
+
   "scripts": {
     "start": "node ./bin/www"
   },
