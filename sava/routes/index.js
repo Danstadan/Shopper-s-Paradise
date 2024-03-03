@@ -112,9 +112,11 @@ router.post('/save/:collection', async (req, res) => {
   try{
     const  newData  = req.body; 
     const {collection} = req.params;
+    console.log('Uploaded files:', req.files); 
+    console.log('Request Object:', req);
 
     // Access Firestore database
-    const db = admin.firestore();
+    //const db = admin.firestore();
 
     // Add new data to a collection
     const docRef = await db.collection(collection).add(newData);
@@ -154,7 +156,6 @@ async function uploadFile(bucketName, fileData, destinationPath) {
 // Updates Product Data
 router.put('/update/:collection/:document', async (req, res) => {
   try {
-    const updateData = req.body;
     const {collection, document} = req.params;
 
     // Updates document in Firestore

@@ -1,13 +1,19 @@
 import '../CSS/NavBar.css';
-import {Link} from 'react-router-dom';
+import {Link, useLocation} from 'react-router-dom';
 
 function Navbar (){
+  const location = useLocation();
+
     return(
         <nav className="navbar navbar-expand-lg bg-success-subtle rounded ">
         <div className="container-fluid">
 
           <div>
-            <img className='logo ms-5' src="./src/assets/download.png" alt="Shopper's Paradise Logo"/>
+            <Link to="/"><img className='logo ms-5' src="./src/assets/10324964.png" alt="Shopper's Paradise Logo" style={{width:"50px", height:"auto"}}/></Link>
+          </div>
+
+          <div>
+            <h5 className="ms-3 ">Shopper's Paradise</h5>
           </div>
 
           <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarTogglerDemo02" aria-controls="navbarTogglerDemo02" aria-expanded="false" aria-label="Toggle navigation">
@@ -27,11 +33,15 @@ function Navbar (){
             <ul className="navbar-nav me-auto mb-2 mb-lg-0 justify-content-end gap-3">
 
               <li className="nav-item">
-                <div className="nav-link active" aria-current="page" href="#">Add to Cart</div>
+                <div className="nav-link active" aria-current="page" href="#">
+                  <img src='./src/assets/AddtoCart.webp' alt="Add to Cart" style={{width:'40px', height: "auto"}}></img>
+                  </div>
               </li>
 
               <li className="nav-item me-5">
-                <a className="nav-link" href="#">Sign In</a>
+                <a className="nav-link" href="#">
+                  <img src="./src/assets/user-64.webp" alt="sign in" style={{width:'40px', height: "auto"}}></img>
+                </a>
               </li>
 
               {/* <li className="nav-item">

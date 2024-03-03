@@ -1,6 +1,9 @@
 import '../CSS/SideBar.css'
+import { useLocation } from 'react-router-dom';
 
 function Sidebar() {
+    const location = useLocation();
+
     return (
 
       <div className="container-fluid  me-6">

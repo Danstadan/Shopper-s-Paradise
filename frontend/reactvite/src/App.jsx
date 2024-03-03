@@ -2,7 +2,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css'
 
 import { Fragment } from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { useState } from 'react';
+import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 
 import Navbar from './Components/Nav';
 import Homepage from './Components/Home';
@@ -11,6 +12,15 @@ import Futaa from './Components/Footer';
 
 import Addproduct from './Components/InnerComponents/NewProduct';
 import Errorr from './Components/404';
+import Editproduct from './Components/InnerComponents/EditProducts';
+import Loginpage from './Components/InnerComponents/Login';
+import CreateAccount from './Components/InnerComponents/CreateAccount';
+import ProfilePage from './Components/InnerComponents/ProfilePage';
+import ShopSetup from './Components/InnerComponents/CreateStore';
+import Aboutus from './Components/InnerComponents/About';
+import Privacy from './Components/InnerComponents/PrivacyPolicy';
+import TermsofService from './Components/InnerComponents/TermsofUse';
+import ContactUs from './Components/InnerComponents/ContactUs';
 
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
@@ -36,29 +46,37 @@ const analytics = getAnalytics(app);
 
 
 function App() {
+   //const location = useLocation ();
+   //const isAddProductPage = location.pathname === "/Addproduct";
+   //const location = useLocation();
+
+  // Function to determine whether to show footer based on route
+  // const shouldShowFooter = (pathname) => {
+  //   // Define routes where footer should be hidden
+  //   const hiddenRoutes = ['/Loginpage',"*", '/CreateAccount'];
+  //   return !hiddenRoutes.includes(pathname);
   
   return (
-    <Fragment>
-      <Router>
-        <Navbar />
-         <div style={{ marginTop: '10px' }}>
-         {/* <div className="container-fluid row"> */}
-            <Sidebar />
-           
-             <Routes>
-                <Route path="/" element={<Homepage />} />
-                {/* <Route path="/category/:categoryId" element={<Category />} /> */}
-                <Route path="/Addproduct" element={<Addproduct />} />                
-                <Route path="*" element={<Errorr />} />
-             </Routes>
-          </div>
-          <Futaa/>
-          
-      </Router>
-
-    </Fragment>
-
+    <Router>
+       {(location.pathname === '/Addproduct'|| location.pathname === '/Editproduct'|| location.pathname === '/Privacy'|| location.pathname === '/Store'|| location.pathname === '/Profile' || location.pathname === '/' || location.pathname === '/TOS' || location.pathname === '/About') && <Navbar />} 
+     {location.pathname === '/' && <Sidebar />}
+      <Routes>
+        <Route path="/Loginpage" element={<Loginpage />} />
+        <Route path="/Profile" element={<ProfilePage />} />
+        <Route path="/Store" element={<ShopSetup />} />
+        <Route path="/CreateAccount" element={<CreateAccount />} />
+        <Route path="/" element={<Homepage />} />
+        <Route path="/Addproduct" element={<Addproduct />} />
+        <Route path="/Editproduct" element={<Editproduct />} />
+        <Route path="/Privacy" element={<Privacy />} />
+        <Route path="/TOS" element={<TermsofService />} />
+        <Route path="/Contactus" element={<ContactUs />} />
+        <Route path="/About" element={<Aboutus />} />
+        <Route path="*" element={<Errorr />} />
+      </Routes>
+       {(!location.pathname ==="/CreateAccount" || location.pathname === "/Loginpage "|| location.pathname === "*")&& <Futaa />}
+  </Router>         
   )
 }
 
-export default App
+export default App;
